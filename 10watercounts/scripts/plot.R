@@ -1,0 +1,16 @@
+args <- commandArgs(TRUE)
+name <- args[1]
+window <- as.numeric(args[2])
+path <- paste("../")
+require(zoo)
+
+mar=c(5,5,2,5)
+pngfile<-paste(path,"plots/watercounts_",name,".png",sep="")
+datfile<-paste(path,"data/watercounts_",name,".dat",sep="")
+a <- read.table(datfile)
+a <- as.vector(as.matrix(a))
+a <- rollmean(a,window,align="center")
+png(pngfile,width=1100,height=825,res=160)
+par(mar=mar)
+plot((1:length(a)),a,"l",ylim=c(0,100),xlab="Frame",ylab="Counts",main=paste("Water count",name,"smooth",window))
+dev.off()

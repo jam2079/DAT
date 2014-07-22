@@ -1,0 +1,51 @@
+
+rm(list=ls())
+require(zoo)
+window <- 100
+
+nn <- c(33095,32788,40000,24418,18561,0,0,0,0,0,513,460,460,432,486,296,430,893,0,0,2500,2500,2500)
+
+list <- structure(NA,class="result")
+"[<-.result" <- function(x,...,value) {
+    args <- as.list(match.call())
+    args <- args[-c(1:2,length(args))]
+    length(value) <- length(args)
+    for(i in seq(along=args)) {
+        a <- args[[i]]
+        if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
+    }
+    x
+}
+readall <- function(run,window,n){
+    Contacts.IL4_Nter <- paste("../7distances/cluster/data/contacts_DAT_run",run,".dat",sep="")
+    Contacts.IL4_Nter <- as.vector(rollmean(read.table(Contacts.IL4_Nter,nrows=n),align="center",window))
+    minDist.R60_D436 <- paste("../7distances/distances/data/distance_60_436_DAT_run",run,".dat",sep="")
+    minDist.R60_D436 <- as.vector(rollmean(read.table(minDist.R60_D436,nrows=n),align="center",window))
+    minDist.D436_R445 <- paste("../7distances/distances/data/distance_436_445_DAT_run",run,".dat",sep="")
+    minDist.D436_R445 <- as.vector(rollmean(read.table(minDist.D436_R445,nrows=n),align="center",window))
+    minDist.R51_D436 <- paste("../7distances/distances/data/distance_51_436_DAT_run",run,".dat",sep="")
+    minDist.R51_D436 <- as.vector(rollmean(read.table(minDist.R51_D436,nrows=n),align="center",window))
+    minDist.PIP2_IL4 <- paste("../7distances/cluster/data/pip2icl4distance_DAT_run",run,".dat",sep="")
+    minDist.PIP2_IL4 <- as.vector(rollmean(read.table(minDist.PIP2_IL4,nrows=n),align="center",window))
+    return(list(Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4))
+}
+
+run <- 1
+n <- 33095
+
+list[Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4] <- readall(run,window,n)
+mydata <- as.data.frame(cbind(Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4))
+#print(length(W.IC_sum))
+print(dim(mydata))
+rm(Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4)
+
+for (run in c(2:5,13:18,21:23)) {
+n <- nn[run]
+list[Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4] <- readall(run,window,n)
+mydata <- rbind(mydata,as.data.frame(cbind(Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4)))
+#print(length(W.IC_sum))
+print(dim(mydata))
+rm(Contacts.IL4_Nter, minDist.R51_D436, minDist.R60_D436, minDist.D436_R445, minDist.PIP2_IL4)
+}
+
+

@@ -1,0 +1,75 @@
+
+rm(list=ls())
+require(zoo)
+window <- 100
+
+nn <- c(33095,32788,40000,24418,18561,0,0,0,0,0,513,460,460,432,486,296,430,893)
+
+list <- structure(NA,class="result")
+"[<-.result" <- function(x,...,value) {
+    args <- as.list(match.call())
+    args <- args[-c(1:2,length(args))]
+    length(value) <- length(args)
+    for(i in seq(along=args)) {
+        a <- args[[i]]
+        if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
+    }
+    x
+}
+readall <- function(run,window,n){
+    W.IC_cav <- paste("../10watercounts/watercounts/data/watercounts_IC_cav_DAT_run",run,".dat",sep="")
+    W.IC_cav <- as.vector(rollmean(read.table(W.IC_cav,nrows=n),align="center",window))
+    W.IC_cha <- paste("../10watercounts/watercounts/data/watercounts_IC_cha_DAT_run",run,".dat",sep="")
+    W.IC_cha <- as.vector(rollmean(read.table(W.IC_cha,nrows=n),align="center",window))
+    W.IC_sum <- W.IC_cav+W.IC_cha
+    Dist.TM1_6 <- paste("../7distances/cluster/data/tm16distance_DAT_run",run,".dat",sep="")
+    Dist.TM1_6 <- as.vector(rollmean(read.table(Dist.TM1_6,nrows=n),align="center",window))
+    Kink.TM51<- paste("../7distances/kinks/data/kink_DAT_run",run,"_bend5_264.txt",sep="")
+    Kink.TM52<- paste("../7distances/kinks/data/kink_DAT_run",run,"_bend5_265.txt",sep="")
+    Kink.TM5 <- (as.vector(rollmean(read.table(Kink.TM51,nrows=n),align="center",window))+as.vector(rollmean(read.table(Kink.TM52,nrows=n),align="center",window)))/2
+    Dist.Na_Na <- paste("../7distances/distances/data/distance_DAT_run",run,"_Na1_Na_nearest.dat",sep="")
+    Dist.Na_Na <- as.vector(rollmean(read.table(Dist.Na_Na,nrows=n),align="center",window))
+    Dist.E428_bulk.ion <- paste("../7distances/cluster/data/bulkions_DAT_run",run,".dat",sep="")
+    Dist.E428_bulk.ion <- as.vector(rollmean(read.table(Dist.E428_bulk.ion,nrows=n),align="center",window))
+    Contacts.IL4_Nter <- paste("../7distances/cluster/data/contacts_DAT_run",run,".dat",sep="")
+    Contacts.IL4_Nter <- as.vector(rollmean(read.table(Contacts.IL4_Nter,nrows=n),align="center",window))
+    W.EC_cav <- paste("../10watercounts/watercounts/data/watercounts_EC_cav_DAT_run",run,".dat",sep="")
+    W.EC_cav <- as.vector(rollmean(read.table(W.EC_cav,nrows=n),align="center",window))
+    W.EC_cha <- paste("../10watercounts/watercounts/data/watercounts_EC_cha_DAT_run",run,".dat",sep="")
+    W.EC_cha <- as.vector(rollmean(read.table(W.EC_cha,nrows=n),align="center",window))   
+    W.EC_sum <- W.EC_cav+W.EC_cha
+    minDist.W84_P387 <- paste("../7distances/distances/data/distance_DAT_run",run,"_84_387.dat",sep="")
+    minDist.W84_P387 <- as.vector(rollmean(read.table(minDist.W84_P387,nrows=n),align="center",window))
+    minDist.W84_F391 <- paste("../7distances/distances/data/distance_DAT_run",run,"_84_391.dat",sep="")
+    minDist.W84_F391 <- as.vector(rollmean(read.table(minDist.W84_F391,nrows=n),align="center",window))
+    minDist.W84_Y394 <- paste("../7distances/distances/data/distance_DAT_run",run,"_84_394.dat",sep="")
+    minDist.W84_Y394 <- as.vector(rollmean(read.table(minDist.W84_Y394,nrows=n),align="center",window))
+    caDist.W84_P387 <- paste("../7distances/cluster/data/cadistance_DAT_run",run,"_84_387.dat",sep="")
+    caDist.W84_P387 <- as.vector(rollmean(read.table(caDist.W84_P387,nrows=n),align="center",window))
+    caDist.W84_F391 <- paste("../7distances/cluster/data/cadistance_DAT_run",run,"_84_391.dat",sep="")
+    caDist.W84_F391 <- as.vector(rollmean(read.table(caDist.W84_F391,nrows=n),align="center",window))
+    caDist.W84_Y394 <- paste("../7distances/cluster/data/cadistance_DAT_run",run,"_84_394.dat",sep="")
+    caDist.W84_Y394 <- as.vector(rollmean(read.table(caDist.W84_Y394,nrows=n),align="center",window))
+    return(list(W.IC_cav, W.IC_cha, W.IC_sum, Dist.TM1_6, Kink.TM5, Dist.Na_Na, Dist.E428_bulk.ion, Contacts.IL4_Nter, W.EC_cav, W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394))
+}
+
+run <- 1
+n <- 33095
+
+list[W.IC_cav, W.IC_cha, W.IC_sum, Dist.TM1_6, Kink.TM5, Dist.Na_Na, Dist.E428_bulk.ion, Contacts.IL4_Nter, W.EC_cav, W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394] <- readall(run,window,n)
+mydata <- as.data.frame(cbind(W.IC_cav,W.IC_cha,W.IC_sum,Dist.TM1_6,Kink.TM5,Dist.Na_Na,Dist.E428_bulk.ion,Contacts.IL4_Nter,W.EC_cav,W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394))
+print(length(W.IC_sum))
+print(dim(mydata))
+rm(W.IC_cav, W.IC_cha, W.IC_sum, Dist.TM1_6, Kink.TM5, Dist.Na_Na, Dist.E428_bulk.ion, Contacts.IL4_Nter, W.EC_cav, W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394)
+
+for (run in c(2:5,11:18)) {
+n <- nn[run]
+list[W.IC_cav, W.IC_cha, W.IC_sum, Dist.TM1_6, Kink.TM5, Dist.Na_Na, Dist.E428_bulk.ion, Contacts.IL4_Nter, W.EC_cav, W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394] <- readall(run,window,n)
+mydata <- rbind(mydata,as.data.frame(cbind(W.IC_cav,W.IC_cha,W.IC_sum,Dist.TM1_6,Kink.TM5,Dist.Na_Na,Dist.E428_bulk.ion,Contacts.IL4_Nter,W.EC_cav,W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394)))
+print(length(W.IC_sum))
+print(dim(mydata))
+rm(W.IC_cav, W.IC_cha, W.IC_sum, Dist.TM1_6, Kink.TM5, Dist.Na_Na, Dist.E428_bulk.ion, Contacts.IL4_Nter, W.EC_cav, W.EC_cha, W.EC_sum, minDist.W84_P387, minDist.W84_F391, minDist.W84_Y394, caDist.W84_P387, caDist.W84_F391, caDist.W84_Y394)
+}
+
+save(mydata,file="cluster.Rdata")
+

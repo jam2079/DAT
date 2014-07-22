@@ -1,0 +1,569 @@
+#
+#	This documenation was written by:
+#     Jaime Medina, June 2014
+#
+#
+#	Protocol for 
+#	setting up the counting of water molecules within a region of a protein
+#	in every frame of a dcd trajectory
+#
+#
+#
+#
+#
+#	If you find this FEP protocol useful for your publications, 
+#	please cite (ASK MICHELLE IF PUTTING SOMETHING HERE):
+#	+Zhao C, +Stolzenberg S, Gracia L, Weinstein H, *Noskov S, *Shi, L.
+#	Ion-controlled conformational dynamics in the outward-open 
+#	transition from an occluded state of LeuT. Biophys J. in press 
+#	+ denotes equal author contribution
+#	* denotes corresponding authorship
+#       
+#	CAUTION:
+#	This script infrastructure is meant to make the computation of the number
+#	of water molecules in a trajectory. 
+#	This infrastructure does not guarantee a perfect setup for 
+# 	the given code, however to make things run as you intended, 
+#	you need to understand what each of the steps/scripts are doing!
+#
+#	The following gives an example for the intracellular cavity of  
+#	Dopamine Transporter (DAT) as well as its channel, the part of it that  
+#	can interact with the substrates. The number of water molecules within
+#	those regions is proportional to the opening of the transporter in the 
+#	intracellular side. Minor changes in the provided code allow us to 
+#	measure the amount of water in the extracellular cavity and channel,
+#	as well as another little pocket between TM 1 and TM 7.
+#
+#############################
+#	Setup
+#############################
+#
+
+1.	Package Content:
+
+   The main_watercounts folder includes 4 scripts and 1 folder:
+
+   run_watercounts.sh	        - main file that runs the code. Some parameters need
+				  to be defined at the beginning of the file
+   watercounts.tcl		- Tcl file in which you define your regions of interest
+   aux_parallel.sh	        - auxiliary script for parallelization of the calculations
+   
+   plot.R		        - accessory R script to plot the results
+   input			- (PROVIDE?) folder with psf and dcd files of the example
+
+   
+   Only the first three files are strictly needed. Copy them into the folder you
+   will work from. There is no need to have anything else in that directory as
+   the path to the psf and dcd files will be defined and two folders with the log
+   of your submitted jobs and the results will be automatically created.
+
+   The way to plot the results depends on the user, this script can be modified
+   or ignored depending on particular needs.
+
+   We provide the psf and the dcd files for the example in the folder input, 
+   but this is not necessarily the folder structure that the user should have
+   for the input files. In fact they don't even need to be in the same folder,
+   the path to both files will be defined in run_watercounts.sh as explained below.
+
+   Catdcd is needed to get the number of frames of the dcd file automatically.
+   However, it is not strictly needed, although in that case you need to define
+   the number of frames manually.
+
+   In this example we show the results using R although this is obviously not 
+   strictly needed.
+
+   VMD is the only program that is required to run this analysis.
+
+
+2. 	Preparation
+
+   Copy the files run_watercounts.sh, aux_parallel.sh and watercounts.tcl to your 
+   project folder. 
+   
+   In the first lines if run_watercounts.sh you need to define the following:
+
+   name				- identifier name for the output
+   psf				- absolute or relative path of the psf file
+   dcd				- absolute or relative path of the dcd file
+   sites			- region of interest in the protein to analyze
+
+   setsize			- number of frames that each job in the array
+				  will analyze 
+   memory			- required memory for each job in the array
+
+   catdcd			- absolute path to catdcd program
+   vmd				- absolute path to VMD program
+
+
+   The output file  
+
+
+3.	
+ 
+   Prepare pdb files from the namd bin files:
+   vmd -dispdev text -e scripts/convert_coor2pdb.tcl -args input/in.psf input/in.coor &> logs/log.convert_coor2pdb.tcl.in.coor.log
+   vmd -dispdev text -e scripts/convert_coor2pdb.tcl -args input/in.psf input/in.vel &> logs/log.convert_coor2pdb.tcl.in.vel.log
+
+   The following 2 files will be made and put into the "input" folder:-
+   
+   in.coor.pdb                                    
+   in.vel.pdb                                     
+   
+3. For each of the  .coor and .vel file, follow the next steps separately:
+Set variable “postfix” to either “coor” or “vel” in the linux shell environment, type in:
+
+postfix=coor # or =vel 
+and change the variable prefix in “parameters.tcl” accordingly
+
+
+postfix=coor # or =vel 
+and change the variable prefix in “parameters.tcl” accordingly
+
+3. For each of the  .coor and .vel file, follow the next steps separately:
+Set variable “postfix” to either “coor” or “vel” in the linux shell environment, type in:
+
+postfix=coor # or =vel 
+and change the variable prefix in “parameters.tcl” accordingly
+
+vmd -dispdev text -e scripts/1_rip_out_FEP_mutated_atoms.tcl > logs/1_rip_out_FEP_mutated_atoms.tcl.$postfix.log
+
+For each FEPatms?.coor.prefep.pdb file (that you have created in “1_rip_out_FEP_mutated_atoms.tcl” - FEPatms?.coor.pdb as backup), manually edit entries (add appearing atoms, e.g. new D2N residue, adjust vel file accordingly). Make necessary adjustments to the ./scripts/?_*tcl listed, e.g. in terms of what residues should be mutated.   
+
+If your FEP computation is a side chain mutation, e.g. you'd like to set up a “D421N” hybrid residue, you can use the VMD “Mutator” Plugin to obtain a good guess of the atom coordinates of the “appearing” side chain. 
+
+In vmd choose the in.psf and in.coor.pdb files - enter the residue information (segment and 3 letter Amino Acid code) and save file with prefix "mytmpmut"
+
+Then you simply copy&paste the coordinates of your mutated residue in 
+
+   mytmpmut.fep    
+                             
+into your 
+   FEPatms?.coor.prefep.pdb
+file
+
+For the velocities of appearing atoms, you have to make educated guesses to be save with velocity entries of less than 1A in abosolute value.
+
+
+Next, type in the shell:
+
+vmd -dispdev text -e scripts/2_create_psf_for_FEP_mutated_atoms.tcl > logs/2_create_psf_for_FEP_mutated_atoms.tcl.$postfix.log
+
+vmd -dispdev text -e scripts/3_combine_2_produce_FEP.tcl > logs/3_combine_2_produce_FEP.tcl.$postfix.log
+
+Next, change beta columns in $MOL.fep.coor.pdb, “-1” for vanishing atoms, “1” for appearing atoms, and “0” for all other atoms
+
+instem="D421N"
+~sebastian/mypackages/alchemify/alchemify $instem.prefep.psf $instem.fep.psf $instem.fep.coor.pdb
+
+~sebastian/mypackages/alchemify/alchemify $instem.prefep.psf $instem.fep.psf $instem.fep.vel.pdb
+
+Important things to consider:
+
+1) segment id of the protein, charge of residue to be mutated. In this case a negatively charged amino acids (Asp) is changed to neutral (Ala) so we need to also change a water molecule into a chloride atom. Edit atom to be a new chain “X”.
+   
+ATOM   9178  OH2 TIP3X   1     -15.544 -32.776  61.770  0.00  0.00      X  
+ATOM   9179  H1  TIP3X   1     -16.114 -33.139  61.092  0.00  0.00      X  
+ATOM   9180  H2  TIP3X   1     -15.631 -31.828  61.674  0.00  0.00      X  
+ATOM   9178  CLA CLA X   2     -15.544 -32.776  61.770  0.00  0.00      X  
+
+
+#############################################
+# Running the FEP (Free Energy Perturbations):
+#############################################
+#
+#	The following infrastructure is meant to execute FEP computations 
+#	that dynamically maintain a pre-defined free-energy change so FEP 
+#	computations are set up for NAMD, but the corresponding ruby 
+#	wrapper script (“fepwrapper.rb”) in principle can be used for other 
+#	MD packages that support a FEP/TI (thermodynamic integration) 
+#	scheme.
+#
+#	folder destination:
+#	./FEP/D421N/1_FEP_conformational_sampling/
+#
+#
+
+1_FEP_conformational_sampling
+
+The FEP folder includes includes 3 folders and 2 files:
+   “run.sh”		- main execution bash shell script
+   "input"        - your input files
+   "output"       - among other files, includes your FEP files
+   "scripts"      - all the tcl scripts necessary for the FEP preparation
+
+
+The “input” folder will symbolic links to your prepared FEP files, e.g. 
+
+D421N.fep.psf -> ../../0_prep_FEP/output/D421N.fep.psf
+D421N.fep.coor.pdb -> ../../0_prep_FEP/output/D421N.fep.coor.pdb
+D421N.fep.vel.pdb -> ../../0_prep_FEP/output/D421N.fep.vel.pdb
+D421N.fep.xsc -> ../../0_prep_FEP/input/in.xsc
+toppar -> /home/mis2066/hwlab_25/From_George/run_wt_DOP_S1/common/
+
+
+Content of the scripts folder:
+
+fep_with_tclforces.tcl	- useful FEP commands, able to incoporate NAMD tcl force commands
+fepwrapper.rb		- main FEP wrapper script written in ruby
+tcl_restraints.tcl	- in case you’d like to add tcl forces
+get_average.distsanglesdiheds.tcl – useful to get reference values for “tcl_restraints.tcl”
+FEP_parameters.tcl	- NAMD FEP parameters
+MD_parameters.tcl		- NAMD MD parameters
+plot_feps.py		- python script to make free energy plots (see below)
+
+FEP.?.namd.prep, ?=0-5, template files copied to “FEP.namd” which is then executed at each stage
+Different FEP stages ?=0-5:
+FEP “forth” run lambda=0->1:
+0: lambda 0->0, collect more frames for restraining potential values if applied.
+1: lambda 0->0.01,..., with deltadeltaG held constant per lambda step
+2: lambda 1->1, collect more frames for restraining potential values if applied.
+output files will be in ./output/forth/
+#
+FEP “back” hysteresis run, lambda=1->0 (necessary if interested in value of deltaG:
+3: lambda 1->1, collect more frames for restraining potential values if applied.
+4: lambda 1->0.99,..., with deltaG held constant per lambda step
+5: lambda 1->1, collect more frames for restraining potential values if applied.
+output files will be in ./output/back/
+
+			
+The “sub_scripts” folder 
+contains submission scripts for your particular cluster platforms:
+- sub.* files are basically the submission script without the actual NAMD execution commands
+- submit* files contain the NAMD execution commands, syntax is no emptyor commented line (“fepwrapper.rb” will add “;” to each line, and then combine into a single line)
+
+Edit sub.mpich.sh to run on panda credentials: i.e name, # of processors and wall time
+
+##########
+
+To execute the FEP wrapper, run “./run.sh”, which contains the following parameters:
+
+runindex=1 # running index for the log files in output/*/logs/*
+runstartstage=0
+lambda_start_step="auto" # only used for runstartstage==1,4 to automatically continue from the last run
+#lambda_start_step="0.870671016170606_0.879615487417401" #to manually set a new starting step of lambda->next_lambda
+# see fepwrapper.rb:
+# runstartstage==0: forth,initial
+# runstartstage==1: forth,middle # can restart in here
+# runstartstage==2: forth,end
+# runstartstage==3: back,initial # can restart after forth,end is complete
+# runstartstage==4: back,middle to end  # can restart in here, if has run for at least on step already
+
+mymol="D421N" # what is the name of your FEP run?
+nsteps=25000  # number of step for each lambda step e.g. 100000 steps=1ns
+dG_max=10.0   # maximum allowed deltadeltaG per lambda step
+dG_ideal=8.0  # this is the deltadeltaG per lambda step that the script will try to maintain
+max_dlambda_change_rate=2 # deltalambda is not changed from one step to the other by more than this factor
+
+subsdir="scripts/sub_scripts"
+subfile="$subsdir/sub.mpich.sh"
+submitfile="$subsdir/submit.mpich"
+
+
+########################################
+
+Important things to consider (cont’d):
+
+
+1. If your system requires restraints as in this mutation then you can comment in the restraints parameter in the MD_parameters.tcl file
+
+In this example there is a water molecule being changed to a chloride ion so a restraint will need to put in place on the OH2 and SOD atoms. 
+
+i.e. 
+
+ATOM  *****  OH2 TIP3X   1     -15.544 -32.776  61.770  1.00  1.00      X    O
+ATOM  *****  H1  TIP3X   1     -16.114 -33.139  61.092  1.00  0.00      X    H
+ATOM  *****  H2  TIP3X   1     -15.631 -31.828  61.674  1.00  0.00      X    H
+ATOM  *****  CLA CLA X   2     -15.544 -32.776  61.770  1.00  1.00      X    CL
+
+We copy D421N.fep.coor.pdb to D421N.restraints.coor.pdb and place back “0” values in the B column for the D2N and X segments except for the OH2 and CLA atoms in chain X.
+
+2.	VMD mutator will not always maintain initial structure of the residue’s side-chain and may likely clash with other sidechain residues.
+
+3.	A mutation will cause some unforeseen interactions with side-chains of unmutated residues. It may be necessary to change the rotamers of these side-chains if an error occurs e.g. Side-chain of Val 266 is overlapping on mutated Asp 421 (need to change rotamer):
+
+TCL: Running for 25000 steps
+ERROR: Constraint failure in RATTLE algorithm for atom 319982!
+ERROR: Constraint failure; simulation has become unstable.
+ERROR: Exiting prematurely; see error messages above.
+
+4. If you change nsteps in "run.sh", you will need to also change nsteps in "alchEquilSteps" in "scripts/FEP_parameters.tcl"
+
+
+Other important things:
+
+Tiny scripts (for linux bash shell) for the Analysis/Troubleshooting of the FEP runs:
+
+a)
+# to track FEP changes in output/*/alchemy-equal.fepout
+grep ch alchemy-equal.fepout
+# accumulate total free energy change
+awk '/change/ {s=s+$12} END {print s}' alchemy-equal.fepout
+
+b)
+# to check conformationally for problems along the FEP transformation, 
+# load in all the restart files from the “forth” and “back” runs in VMD:
+#
+set inpsf "input/*.fep.psf"
+set indir "output/*/restarts"
+mol load psf [glob $inpsf]
+foreach file  [split [eval exec ls -thr [glob $indir/restart*.coor]]] {
+	puts $file
+	animate read namdbin $file waitfor all
+}
+#
+# ... and iteratively delete the first&last frame, if you’d like to 
+# compare the conformations e.g. of the lambda=0.4359->0.5129
+# windows between the “forth” and “back” phase
+set numframes [molinfo top get numframes]
+user add key d {
+	animate delete beg 0 end 0
+	set numframes [expr $numframes-2]
+	animate delete beg $numframes end $numframes
+}
+
+
+c)
+# if harmonic restraints are used, as e.g. defined in
+# “tcl_restraints.tcl”, you can estimate the free energy difference
+# from restraints by parsing the average restraining potential energy
+# at lambda=0.0 and lambda=1.0, <E_r>_0 and <E_r>_1, respectively, so that
+# \delta\deltaG_restraints(0->1):= <E_r>_1-<E_r>_0
+#
+parseEs () { awk '/^ENERGY/ {misc=misc+$10;tot=tot+$15;numfrms=numfrms+1} END {print "MISC_avg: " misc/numfrms;print "TOT3_avg: " tot/numfrms}' $1; }
+parseEs FEP.namd.log.0.0
+parseEs FEP.namd.log.1.0
+
+d)
+#
+# Check out the python script “scripts/plot_feps.py” to make some
+# FEP free energy plots along lambda (“forth” and “back” phase)
+#
+
+#############################################
+# Running the MD simulation after FEP:
+#############################################
+#
+#	The following infrastructure is meant to execute MD simulations 
+#	set up for NAMD
+#
+#	folder destination:
+#	./FEP/D421N/2.MD-prep/
+#
+#
+2.MD-prep
+
+Folder contains 3 folders:
+input
+output
+scripts
+
+and three files parameters.tcl and readme.txt and patch.tcl
+
+Edit parameters.tcl with changes to “MOL”, “topparfolder”, l_myseg = those segments that have been through the FEP
+
+In the “input” folder make symbolic links to the 1.0 restart files:
+
+lrwxrwxrwx 1 mis2066 physbio       48 Nov 28 15:17 restart.1.0.coor.lnk -> ../../FEP/output/forth/restarts/restart.1.0.coor
+-rw-r--r-- 1 mis2066 physbio  7801444 Nov 28 15:17 restart.1.0.coor
+lrwxrwxrwx 1 mis2066 physbio       47 Nov 28 15:17 restart.1.0.vel.lnk -> ../../FEP/output/forth/restarts/restart.1.0.vel
+-rw-r--r-- 1 mis2066 physbio  7801444 Nov 28 15:17 restart.1.0.vel
+lrwxrwxrwx 1 mis2066 physbio       47 Nov 28 15:17 restart.1.0.xsc.lnk -> ../../FEP/output/forth/restarts/restart.1.0.xsc
+-rw-r--r-- 1 mis2066 physbio      240 Nov 28 15:17 restart.1.0.xsc
+lrwxrwxrwx 1 mis2066 physbio       29 Nov 28 15:17 D421N.fep.psf.lnk -> ../../FEP/input/D421N.fep.psf
+-rw-r--r-- 1 mis2066 physbio 45185251 Nov 28 15:17 D421N.fep.psf
+
+restart.1.0.coor.lnk -> ../../1_FEP_conformational_sampling/output/forth/restarts/restart.0.316833084713039.coor
+restart.1.0.vel.lnk -> ../../1_FEP_conformational_sampling/output/forth/restarts/restart.0.316833084713039.vel
+restart.1.0.xsc.lnk -> ../../1_FEP_conformational_sampling/output/forth/restarts/restart.0.316833084713039.xsc
+D421N.fep.psf.lnk -> ../../1_FEP_conformational_sampling/input/D421N.fep.psf
+restart.1.0.coor
+restart.1.0.vel
+restart.1.0.xsc
+D421N.fep.psf
+restart.1.0.coor.pdb
+restart.1.0.vel.pdb
+
+
+In “scripts” folder:
+
+NO edit necessary in scripts folder for:
+1_rip_out_fep_leftovers.tcl  
+2_combine_to_get_MD_start_structure.tcl 
+UNLESS the starting lambda values is not 1.0!
+
+Edit patch.tcl for residues in l_myseg that will be patched
+
+
+The readme.txt file has the following lines:
+mymut=D2N
+vmd -dispdev text -e scripts/1_rip_out_fep_leftovers.tcl -args $mymut &> output/log.1_rip_out_fep_leftovers.tcl.log
+# clean up .coor.pdb and .vel.pdb files manually to get .clnd.coor.pdb and .clnd.vel.pdb
+vmd -dispdev text -e scripts/2_combine_to_get_MD_start_structure.tcl -args $mymut &> output/log.2_combine_to_get_MD_start_structure.tcl.log
+
+
+FIRST Execute:
+mymut=D2N
+vmd -dispdev text -e scripts/1_rip_out_fep_leftovers.tcl -args $mymut &> output/log.1_rip_out_fep_leftovers.tcl.log
+
+In the input folder this two files will be created:
+
+-rw-r--r-- 1 mis2066 physbio 25679815 Nov 28 15:57 restart.1.0.coor.pdb
+-rw-r--r-- 1 mis2066 physbio 25679815 Nov 28 15:57 restart.1.0.vel.pdb
+
+In the output folder the following files will be created:
+-rw-r--r-- 1 mis2066 physbio   725690 Dec 14 16:06 restart.1.0.PROT.coor.pdb
+-rw-r--r-- 1 mis2066 physbio   725690 Dec 14 16:06 restart.1.0.PROT.clnd.coor.pdb
+-rw-r--r-- 1 mis2066 physbio      391 Dec 14 16:06 restart.1.0.X.coor.pdb
+-rw-r--r-- 1 mis2066 physbio      391 Dec 14 16:06 restart.1.0.X.clnd.coor.pdb
+-rw-r--r-- 1 mis2066 physbio 43044834 Dec 14 16:06 restart.1.0.other.coor.psf
+-rw-r--r-- 1 mis2066 physbio 24953859 Dec 14 16:06 restart.1.0.other.coor.pdb
+-rw-r--r-- 1 mis2066 physbio 43044834 Dec 14 16:06 restart.1.0.other.clnd.coor.psf
+-rw-r--r-- 1 mis2066 physbio 24953859 Dec 14 16:06 restart.1.0.other.clnd.coor.pdb
+-rw-r--r-- 1 mis2066 physbio   725690 Dec 14 16:07 restart.1.0.PROT.vel.pdb
+-rw-r--r-- 1 mis2066 physbio   725690 Dec 14 16:07 restart.1.0.PROT.clnd.vel.pdb
+-rw-r--r-- 1 mis2066 physbio      391 Dec 14 16:07 restart.1.0.X.vel.pdb
+-rw-r--r-- 1 mis2066 physbio      391 Dec 14 16:07 restart.1.0.X.clnd.vel.pdb
+-rw-r--r-- 1 mis2066 physbio 43044834 Dec 14 16:07 restart.1.0.other.vel.psf
+-rw-r--r-- 1 mis2066 physbio 24953859 Dec 14 16:07 restart.1.0.other.vel.pdb
+-rw-r--r-- 1 mis2066 physbio 43044834 Dec 14 16:07 restart.1.0.other.clnd.vel.psf
+-rw-r--r-- 1 mis2066 physbio 24953859 Dec 14 16:07 restart.1.0.other.clnd.vel.pdb
+-rw-r--r-- 1 mis2066 physbio     7233 Dec 14 16:07 log.1_rip_out_fep_leftovers.tcl.log
+
+
+Edit restart.1.0.PROT.clnd.coor.pdb and restart.1.0.X.clnd.coor.pdb and restart.1.0.PROT.clnd.vel.pdb and restart.1.0.X.clnd.vel.pdb to remove the atoms that were disappearing i.e all with “A” postfixes and renamed to ASN and CL.
+
+i.e. in “coor” files for l_myseg=PROT
+
+BEFORE:
+ATOM   6490  N   D2N P 421      54.389  34.644  -7.911  0.00  0.00      PROT  
+ATOM   6491  HN  D2N P 421      54.138  33.757  -7.530  0.00  0.00      PROT  
+ATOM   6492  CA  D2N P 421      53.611  35.194  -8.985  0.00  0.00      PROT  
+ATOM   6493  HA  D2N P 421      54.256  35.452  -9.812  0.00  0.00      PROT  
+ATOM   6494  CBA D2N P 421      52.655  34.157  -9.557  0.00  0.00      PROT  
+ATOM   6495 HB1A D2N P 421      53.163  33.169  -9.587  0.00  0.00      PROT  
+ATOM   6496 HB2A D2N P 421      51.803  34.009  -8.861  0.00  0.00      PROT  
+ATOM   6497  CGA D2N P 421      52.165  34.635 -10.892  0.00  0.00      PROT  
+ATOM   6498 OD1A D2N P 421      52.961  34.881 -11.768  0.00  0.00      PROT  
+ATOM   6499 OD2A D2N P 421      50.932  34.721 -11.119  0.00  0.00      PROT  
+ATOM   6500  CBB D2N P 421      52.671  34.001  -9.402  0.00  0.00      PROT  
+ATOM   6501 HB1B D2N P 421      53.192  33.296 -10.084  0.00  0.00      PROT  
+ATOM   6502 HB2B D2N P 421      52.270  33.525  -8.482  0.00  0.00      PROT  
+ATOM   6503  CGB D2N P 421      51.444  34.350 -10.209  0.00  0.00      PROT  
+ATOM   6504 OD1B D2N P 421      50.334  34.452  -9.684  0.00  0.00      PROT  
+ATOM   6505 ND2B D2N P 421      51.641  34.676 -11.532  0.00  0.00      PROT  
+ATOM   6506 H21B D2N P 421      50.929  35.135 -12.065  0.00  0.00      PROT  
+ATOM   6507 H22B D2N P 421      52.569  34.476 -11.846  0.00  0.00      PROT  
+ATOM   6508  C   D2N P 421      52.805  36.507  -8.633  0.00  0.00      PROT  
+ATOM   6509  O   D2N P 421      52.645  37.383  -9.451  0.00  0.00      PROT  
+
+
+AFTER
+ATOM   6490  N   ASN P 421      54.389  34.644  -7.911  0.00  0.00      PROT  
+ATOM   6491  HN  ASN P 421      54.138  33.757  -7.530  0.00  0.00      PROT  
+ATOM   6492  CA  ASN P 421      53.611  35.194  -8.985  0.00  0.00      PROT  
+ATOM   6493  HA  ASN P 421      54.256  35.452  -9.812  0.00  0.00      PROT  
+ATOM   6500  CB  ASN P 421      52.671  34.001  -9.402  0.00  0.00      PROT  
+ATOM   6501  HB1 ASN P 421      53.192  33.296 -10.084  0.00  0.00      PROT  
+ATOM   6502  HB2 ASN P 421      52.270  33.525  -8.482  0.00  0.00      PROT  
+ATOM   6503  CG  ASN P 421      51.444  34.350 -10.209  0.00  0.00      PROT  
+ATOM   6504  OD1 ASN P 421      50.334  34.452  -9.684  0.00  0.00      PROT  
+ATOM   6505  ND2 ASN P 421      51.641  34.676 -11.532  0.00  0.00      PROT  
+ATOM   6506  H21 ASN P 421      50.929  35.135 -12.065  0.00  0.00      PROT  
+ATOM   6507  H22 ASN P 421      52.569  34.476 -11.846  0.00  0.00      PROT  
+ATOM   6508  C   ASN P 421      52.805  36.507  -8.633  0.00  0.00      PROT  
+ATOM   6509  O   ASN P 421      52.645  37.383  -9.451  0.00  0.00      PROT  
+
+
+i.e.l_myseg=X
+
+BEFORE:
+ATOM      1  OH2 TIP3X   1     -15.254 -32.150  61.587  0.00  0.00      X     
+ATOM      2  H1  TIP3X   1     -15.668 -31.351  61.913  0.00  0.00      X     
+ATOM      3  H2  TIP3X   1     -14.797 -31.877  60.791  0.00  0.00      X     
+ATOM      4  CLA CLA X   2     -14.951 -32.354  61.505  0.00  0.00      X
+
+AFTER:
+CRYST1    0.000    0.000    0.000  90.00  90.00  90.00 P 1           1
+ATOM      1  CLA CLA X   1     -14.951 -32.354  61.505  0.00  0.00      X     
+END
+
+
+Finally execute in main directory:
+
+mymut=D2N
+# clean up .coor.pdb and .vel.pdb files manually to get .clnd.coor.pdb and .clnd.vel.pdb
+vmd -dispdev text -e scripts/2_combine_to_get_MD_start_structure.tcl -args $mymut &> output/log.2_combine_to_get_MD_start_structure.tcl.log
+
+Files of interest will be
+
+-rwxrwxrwx 1 mis2066 physbio 45220615 Mar 26 14:06 D421N.FEP-MD.MD.coor.psf
+-rwxrwxrwx 1 mis2066 physbio 25679079 Mar 26 14:06 D421N.FEP-MD.MD.coor.pdb
+-rwxrwxrwx 1 mis2066 physbio 45220615 Mar 26 14:06 D421N.FEP-MD.MD.vel.psf
+-rwxrwxrwx 1 mis2066 physbio 24953859 Mar 26 13:55 restart.1.0.other.clnd.coor.pdb
+-rwxrwxrwx 1 mis2066 physbio   725690 Mar 26 13:55 restart.1.0.PROT.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio      391 Mar 26 13:55 restart.1.0.X.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio 43044834 Mar 26 13:55 restart.1.0.other.vel.psf
+-rwxrwxrwx 1 mis2066 physbio 24953859 Mar 26 13:55 restart.1.0.other.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio 43044834 Mar 26 13:55 restart.1.0.other.clnd.vel.psf
+-rwxrwxrwx 1 mis2066 physbio 24953859 Mar 26 13:55 restart.1.0.other.clnd.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio     7232 Mar 26 13:55 log.1_rip_out_fep_leftovers.tcl.log
+-rwxrwxrwx 1 mis2066 physbio   725216 Mar 26 14:01 restart.1.0.PROT.clnd.coor.pdb
+-rwxrwxrwx 1 mis2066 physbio      154 Mar 26 14:03 restart.1.0.X.clnd.coor.pdb
+-rwxrwxrwx 1 mis2066 physbio   725216 Mar 26 14:04 restart.1.0.PROT.clnd.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio      154 Mar 26 14:05 restart.1.0.X.clnd.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio  2176136 Mar 26 14:06 restart.1.0.PROT.clnd.coor.regenerated.psf
+-rwxrwxrwx 1 mis2066 physbio   725191 Mar 26 14:06 restart.1.0.PROT.clnd.coor.regenerated.pdb
+-rwxrwxrwx 1 mis2066 physbio      583 Mar 26 14:06 restart.1.0.X.clnd.coor.regenerated.psf
+-rwxrwxrwx 1 mis2066 physbio      129 Mar 26 14:06 restart.1.0.X.clnd.coor.regenerated.pdb
+-rwxrwxrwx 1 mis2066 physbio 45220615 Mar 26 14:06 D421N.FEP-MD.MD.coor.psf
+-rwxrwxrwx 1 mis2066 physbio 25679079 Mar 26 14:06 D421N.FEP-MD.MD.coor.pdb
+-rwxrwxrwx 1 mis2066 physbio  2176682 Mar 26 14:06 restart.1.0.PROT.clnd.vel.regenerated.psf
+-rwxrwxrwx 1 mis2066 physbio   725191 Mar 26 14:06 restart.1.0.PROT.clnd.vel.regenerated.pdb
+-rwxrwxrwx 1 mis2066 physbio     1129 Mar 26 14:06 restart.1.0.X.clnd.vel.regenerated.psf
+-rwxrwxrwx 1 mis2066 physbio      129 Mar 26 14:06 restart.1.0.X.clnd.vel.regenerated.pdb
+-rwxrwxrwx 1 mis2066 physbio 45220615 Mar 26 14:06 D421N.FEP-MD.MD.vel.psf
+-rwxrwxrwx 1 mis2066 physbio 25679079 Mar 26 14:06 D421N.FEP-MD.MD.vel.pdb
+-rwxrwxrwx 1 mis2066 physbio     7729 Mar 26 14:06 log.2_combine_to_get_MD_start_structure.tcl.log
+
+
+3.MD
+
+Use 
+D421N.FEP-MD.MD.vel.pdb
+D421N.FEP-MD.MD.coor.pdb
+D421N.FEP-MD.MD.coor.psf -> D421N.FEP-MD.MD.psf
+Also need to copy restart.1.0.xsc from output/forth/restarts/
+
+Copied to phase6
+
+Copy toplogies to common and change D421N.FEP-MD.MD.psf -> ionized.psf 
+
+In phase 7 restart simulation. Need to edit the run_production.in 
+
+set inputdir  /home/mis2066/hwlab_34/DAT_FEP/D421N/3.MD/phase6
+set outputdir .
+set common    /home/mis2066/hwlab_34/DAT_FEP/D421N/3.MD/common
+
+#############################################################
+## ADJUSTABLE PARAMETERS                                   ##
+#############################################################
+
+set temperature    310
+set inputname      $inputdir/D421N.FEP-MD.MD
+set outputname     dat_phase7
+
+structure          $common/ionized.psf
+coordinates        $inputname.coor.pdb
+velocities         $inputname.vel.pdb  
+extendedSystem     $inputdir/dat_phase6_2.restart.xsc
+#coordinates        $inputname.coor
+#bincoordinates     $inputname.restart.coor
+#binvelocities      $inputname.restart.vel
+#extendedSystem     $inputname.restart.xsc
+firsttimestep      0
+
+
+and then restart jobs in normal NAMD execution
+
+
+

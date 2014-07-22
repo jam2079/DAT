@@ -1,0 +1,17 @@
+
+rm(list=ls())
+
+#load("cluster.Rdata")
+
+#n <- dim(mydata)[1]
+#rm(mydata)
+#n <- 1000
+
+n <- 15155
+
+c2 <- c()
+for (i in 1:(n-1)){
+    c2 <- c(c2,(i+1):n)
+}
+
+write.table(c2,row.names=FALSE,col.names=FALSE,file="c2.dat")
