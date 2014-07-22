@@ -5,13 +5,13 @@ rm(list=ls())
 #options(warn=-1)
 
 PERCENT <- 2
-STRIDE <- 50
-SET <- "ALL"
+STRIDE <- 100
+SET <- "1"
 if (SET==1){TAKE <- c(1,2,4,6,15);RANK <- 4}
 if (SET==2){TAKE <- c(9,10,13,16);RANK <- 9}
 if (SET==3){TAKE <- c(5,7,8,12,14,17);RANK <- 14}
 if (SET=="ALL"){TAKE <- c(1:17);RANK <- 4}
-PLOT <- 1
+PLOT <- 0
 
 load("cluster.Rdata")
 
@@ -36,7 +36,7 @@ load("cluster.Rdata")
 
 standardize <- function(mydata){
     for (i in 1:dim(mydata)[2]){
-        mydata[,i] <- (mydata[,i] - min(mydata[,i]))/(max(mydata[,i]) - min(mydata[,i]))
+        mydata[,i] <- (mydata[,i] - mean(mydata[,i]))/(max(mydata[,i]) - min(mydata[,i]))
     }
     return(mydata)
 }
@@ -206,19 +206,18 @@ for (i in 1:nclust){
 #tmp <- cbind(1:ND,cl,halo)
 #save(tmp,file="CLUSTER_ASSIGNATION")
 
-n <- c(32996,32689,39901,24319,18462,0,0,0,0,0,414,361,361,333,387,197,331,794)
-n <- floor(n/STRIDE)
-n1 <- list(c(1:n[1]))
-nn <- lapply(2:18, function(i) c((sum(n[1:(i-1)])+1):sum(n[1:i])))
-nn <- append(n1,nn)
 if (PLOT) {
+  n <- c(32996,32689,39901,24319,18462,0,0,0,0,0,414,361,361,333,387,197,331,794)
+  n <- floor(n/STRIDE)
+  n1 <- list(c(1:n[1]))
+  nn <- lapply(2:18, function(i) c((sum(n[1:(i-1)])+1):sum(n[1:i])))
+  nn <- append(n1,nn)
     for (run in c(1:5,11:18)) {
         png(paste("new/set",SET,"_num",nclust,"_run",run,".png",sep=""),width=1100,height=825,res=160)
         if(run<10){plot((1:n[run]),cl[nn[[run]]],ylim=c(1,nclust),ylab="Cluster",xlab="Frame",main=paste("Cluster distribution of set",SET,"with",nclust,"groups in run",run),cex=0.01)}
         if(run>10){plot((1:n[run]),cl[nn[[run]]],"l",ylim=c(1,nclust),ylab="Cluster",xlab="Frame",main=paste("Cluster distribution of set",SET,"with",nclust,"groups in run",run),cex=0.01)}
         dev.off()
     }
-}
 png(paste("new/set",SET,"_num",nclust,".png",sep=""),width=700,height=1400,res=160)
 par(mfrow=c(2,1))
 plot(rho,delta,'p',main="Decision Graph",xlab="rho",ylab="delta",cex=0.75,pch=16)
@@ -231,5 +230,6 @@ for (i in 1:nclust){
     points(Y1[cl==i,1],Y1[cl==i,2],'p',col=i+1,cex=0.01)
 }
 dev.off()
+}
 
 #heatmap(abs(cor(mydata)),dendrogram="none",col=colorRampPalette(c("blue","cyan","yellow","red"))(256))
