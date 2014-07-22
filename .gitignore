@@ -35,6 +35,7 @@ atom.names
 *.jpg
 
 q*
+*~
 
 .hidden_bashrc_output
 .DS_Store
