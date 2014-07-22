@@ -22,6 +22,7 @@ atom.names
 .Rhistory
 *.Rproj*
 *.Rout
+.Rapp*
 
 *.txt
 *.dat
