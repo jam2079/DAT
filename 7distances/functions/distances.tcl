@@ -120,6 +120,24 @@ if { $site == "$r1\_$r2" } {
 	distresidues $r1 $r2 $path $num_steps
 }
 
+####################### SITE 335_428
+
+set r1 335
+set r2 428
+if { $site == "$r1\_$r2" } {
+	set path "distances/data/$title\_$site\_$name\_part$part.dat"
+	distresidues $r1 $r2 $path $num_steps
+}
+
+####################### SITE 60_428
+
+set r1 60
+set r2 428
+if { $site == "$r1\_$r2" } {
+	set path "distances/data/$title\_$site\_$name\_part$part.dat"
+	distresidues $r1 $r2 $path $num_steps
+}
+
 ####################### SITE 436_445
 
 set r1 436

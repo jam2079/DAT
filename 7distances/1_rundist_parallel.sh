@@ -4,10 +4,10 @@ run=$1
 micro=$2
 
 size=100
-memory=1G
+memory=2G
 
 title=distance
-sites=(60_436 436_445 51_436)
+sites=(60_428)
 
 source /home/jam2079/DAT/7distances/runs.txt
 
@@ -16,7 +16,8 @@ source /home/jam2079/DAT/7distances/runs.txt
 echo $name
 mkdir -p distances/data distances/plots logs
 
-totframes=`/pbtech_mounts/hwlab_store011/mil2037_dat/Commands/catdcd -num $inputpath/$dcd | grep Total | cut -d" " -f3`
+totframes=`/home/jam2079/programs/catdcd -num $inputpath/$dcd | grep Total | cut -d" " -f3`
+#totframes=10000
 n=$((($totframes + $size -1)/$size))
 
 for site in ${sites[@]}

@@ -4,9 +4,9 @@
 #$ -j y
 #$ -l os=rhel5.4
 
-#rm q*
+rm q*
 name=$1
-setsize=$2
+size=$2
 n=$3
 site=$4
 psf=$5
@@ -14,18 +14,14 @@ dcd=$6
 vmd=$7
 
 i=$SGE_TASK_ID
-first=$(( ($i - 1) * $setsize ))
-last=$(( $i  * $setsize - 1))
+first=$(( ($i - 1) * $size ))
+last=$(( $i  * $size - 1))
 
 i=`printf "%05d" $i`
 sitename=$site\_$name
 sitenamepart=$sitename\_part$i
 
-echo $sitenamepart
-
-echo "*****VMD started"
-$vmd -dispdev text -eofexit < watercounts.tcl > logs/log_$sitenamepart.log -args $psf $dcd $sitenamepart $first $last $site
-echo "*****VMD finished"
+$vmd -dispdev text -eofexit < scripts/watercounts.tcl > logs/log_$sitenamepart.log -args $psf $dcd $sitenamepart $first $last $site
 
 cd watercounts/data
 

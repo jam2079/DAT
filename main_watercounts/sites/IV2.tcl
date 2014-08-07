@@ -1,0 +1,5 @@
+set sel [atomselect top "name CB and resid 436"]
+set zcoord [$sel get z]
+set zmax [expr $zcoord+15.5]
+set waterbasicsel [atomselect top "name OH2 and (not within 5 of lipid) and z<$zmax and (within 15 of (resname DOP)) and (not within 5 of (resname DOP)) and (within 13 of (backbone and resid 343 347)) and (not within 13 of (backbone and resid 99))" frame $f]
+

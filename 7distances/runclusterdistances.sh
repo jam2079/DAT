@@ -13,11 +13,7 @@ echo $prot
 echo run$run
 echo micro$micro
 
-mkdir -p cluster/data
-#cp functions/* $prot/run$run/
-#cp * $prot/run$run
-#cd $prot/run$run
-#rm q*
+mkdir -p cluster/data cluster/plots
 
 source /home/jam2079/DAT/7distances/runs.txt
 
@@ -30,9 +26,4 @@ echo "*****VMD finished"
 echo "*****R started"
 #~/programs/Rscript ./functions/plot.R $prot $run
 echo "*****R finished"
-
-#mv protein/$prot\_run$run\_* /zenodotus/hwlab/scratch/jam2079/DAT/proteins/
-#rm -rf protein
-
-#cd ../..
 

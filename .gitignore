@@ -30,6 +30,7 @@ atom.names
 *.log
 *.tif
 *.swp
+*.xlsx
 
 *.gif
 *.png
